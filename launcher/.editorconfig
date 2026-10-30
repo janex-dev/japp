@@ -1,0 +1,182 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+indent_style = space
+# Neither formatter re-wraps existing lines; this stops Rider from inventing
+# line breaks based on its own default width.
+max_line_length = 999999
+
+[*.{csproj,props,targets,config,nuspec,resx,slnx}]
+indent_size = 2
+
+[*.{yaml,yml}]
+indent_size = 2
+
+[*.cs]
+indent_size = 4
+
+# Roslyn switches whose defaults disagree with Rider's defaults.
+csharp_indent_case_contents_when_block = false
+csharp_new_line_before_members_in_object_initializers = false
+csharp_new_line_before_members_in_anonymous_types = false
+# Roslyn's default, but Rider needs it stated to leave single-statement blocks
+# (and single-statement lambdas) on one line instead of expanding them.
+csharp_preserve_single_line_blocks = true
+
+# Rider switches whose defaults disagree with Roslyn's defaults.
+resharper_outdent_statement_labels = true
+resharper_align_linq_query = true
+resharper_csharp_indent_raw_literal_string = do_not_change
+# Test attributes keep their trailing comments in aligned columns.
+resharper_csharp_int_align_comments = true
+resharper_place_simple_embedded_statement_on_same_line = false
+resharper_place_simple_anonymousmethod_on_single_line = false
+resharper_blank_lines_after_block_statements = 0
+resharper_blank_lines_after_multiline_statements = 0
+resharper_blank_lines_around_property = 0
+resharper_blank_lines_around_local_method = 0
+
+# Roslyn always indents consecutive nested statements; Rider does so only when
+# each statement kind is switched on.
+resharper_indent_nested_foreach_stmt = true
+resharper_indent_nested_for_stmt = true
+resharper_indent_nested_while_stmt = true
+resharper_indent_nested_lock_stmt = true
+
+# Roslyn expands an empty block whose header is wrapped, and leaves every other
+# empty block as written. Only the fully expanded shape satisfies both
+# formatters, so Rider normalises to it; the result is stable in either order.
+resharper_csharp_empty_block_style = multiline
+
+# Roslyn keeps a member attribute on its own line; Rider's default pulls it onto
+# the member's line, so every Roslyn-formatted file is rewritten again. Keeping
+# Rider's "same line" options off makes both formatters agree on the stacked shape.
+resharper_place_accessorholder_attribute_on_same_line = false
+resharper_place_field_attribute_on_same_line = false
+resharper_place_method_attribute_on_same_line = false
+resharper_place_type_attribute_on_same_line = false
+
+# Project preferences that neither formatter's defaults express.
+dotnet_sort_system_directives_first = true
+csharp_style_namespace_declarations = file_scoped:suggestion
+dotnet_diagnostic.ide0005.severity = suggestion
+# Rider-only inspection turned off by preference.
+resharper_loop_can_be_converted_to_query_highlighting = none
+# A multiline list ends with a trailing comma. Rider adds it during code cleanup;
+# Roslyn has no rule for it and leaves the comma in place.
+resharper_trailing_comma_in_multiline_lists = true
+
+# Roslyn ships no naming rules, so the shared conventions must be stated here;
+# Rider reads the same standard dotnet_naming_* properties.
+dotnet_naming_rule.types_and_namespaces_rule.severity = warning
+dotnet_naming_rule.types_and_namespaces_rule.symbols = types_and_namespaces_symbols
+dotnet_naming_rule.types_and_namespaces_rule.style = pascal_case_style
+
+dotnet_naming_rule.interfaces_rule.severity = warning
+dotnet_naming_rule.interfaces_rule.symbols = interfaces_symbols
+dotnet_naming_rule.interfaces_rule.style = i_pascal_case_style
+
+dotnet_naming_rule.type_parameters_rule.severity = warning
+dotnet_naming_rule.type_parameters_rule.symbols = type_parameters_symbols
+dotnet_naming_rule.type_parameters_rule.style = t_pascal_case_style
+
+dotnet_naming_rule.constants_rule.severity = warning
+dotnet_naming_rule.constants_rule.symbols = constants_symbols
+dotnet_naming_rule.constants_rule.style = pascal_case_style
+
+dotnet_naming_rule.private_static_readonly_rule.severity = warning
+dotnet_naming_rule.private_static_readonly_rule.symbols = private_static_readonly_symbols
+dotnet_naming_rule.private_static_readonly_rule.style = pascal_case_style
+
+dotnet_naming_rule.private_fields_rule.severity = warning
+dotnet_naming_rule.private_fields_rule.symbols = private_fields_symbols
+dotnet_naming_rule.private_fields_rule.style = underscore_camel_case_style
+
+dotnet_naming_rule.non_private_fields_rule.severity = warning
+dotnet_naming_rule.non_private_fields_rule.symbols = non_private_fields_symbols
+dotnet_naming_rule.non_private_fields_rule.style = pascal_case_style
+
+dotnet_naming_rule.methods_rule.severity = warning
+dotnet_naming_rule.methods_rule.symbols = methods_symbols
+dotnet_naming_rule.methods_rule.style = pascal_case_style
+
+dotnet_naming_rule.properties_rule.severity = warning
+dotnet_naming_rule.properties_rule.symbols = properties_symbols
+dotnet_naming_rule.properties_rule.style = pascal_case_style
+
+dotnet_naming_rule.events_rule.severity = warning
+dotnet_naming_rule.events_rule.symbols = events_symbols
+dotnet_naming_rule.events_rule.style = pascal_case_style
+
+dotnet_naming_rule.local_functions_rule.severity = warning
+dotnet_naming_rule.local_functions_rule.symbols = local_functions_symbols
+dotnet_naming_rule.local_functions_rule.style = pascal_case_style
+
+dotnet_naming_rule.local_constants_rule.severity = warning
+dotnet_naming_rule.local_constants_rule.symbols = local_constants_symbols
+dotnet_naming_rule.local_constants_rule.style = camel_case_style
+
+dotnet_naming_rule.locals_rule.severity = warning
+dotnet_naming_rule.locals_rule.symbols = locals_symbols
+dotnet_naming_rule.locals_rule.style = camel_case_style
+
+dotnet_naming_rule.parameters_rule.severity = warning
+dotnet_naming_rule.parameters_rule.symbols = parameters_symbols
+dotnet_naming_rule.parameters_rule.style = camel_case_style
+
+dotnet_naming_symbols.types_and_namespaces_symbols.applicable_kinds = class, delegate, enum, namespace, struct
+dotnet_naming_symbols.types_and_namespaces_symbols.applicable_accessibilities = *
+
+dotnet_naming_symbols.interfaces_symbols.applicable_kinds = interface
+dotnet_naming_symbols.interfaces_symbols.applicable_accessibilities = *
+
+dotnet_naming_symbols.type_parameters_symbols.applicable_kinds = type_parameter
+dotnet_naming_symbols.type_parameters_symbols.applicable_accessibilities = *
+
+dotnet_naming_symbols.constants_symbols.applicable_kinds = field
+dotnet_naming_symbols.constants_symbols.applicable_accessibilities = *
+dotnet_naming_symbols.constants_symbols.required_modifiers = const
+
+dotnet_naming_symbols.private_static_readonly_symbols.applicable_kinds = field
+dotnet_naming_symbols.private_static_readonly_symbols.applicable_accessibilities = private
+dotnet_naming_symbols.private_static_readonly_symbols.required_modifiers = readonly, static
+
+dotnet_naming_symbols.private_fields_symbols.applicable_kinds = field
+dotnet_naming_symbols.private_fields_symbols.applicable_accessibilities = private
+
+dotnet_naming_symbols.non_private_fields_symbols.applicable_kinds = field
+dotnet_naming_symbols.non_private_fields_symbols.applicable_accessibilities = public, internal, protected, protected_internal, private_protected
+
+dotnet_naming_symbols.methods_symbols.applicable_kinds = method
+dotnet_naming_symbols.methods_symbols.applicable_accessibilities = *
+
+dotnet_naming_symbols.properties_symbols.applicable_kinds = property
+dotnet_naming_symbols.properties_symbols.applicable_accessibilities = *
+
+dotnet_naming_symbols.events_symbols.applicable_kinds = event
+dotnet_naming_symbols.events_symbols.applicable_accessibilities = *
+
+dotnet_naming_symbols.local_functions_symbols.applicable_kinds = local_function
+dotnet_naming_symbols.local_functions_symbols.applicable_accessibilities = *
+
+dotnet_naming_symbols.local_constants_symbols.applicable_kinds = local
+dotnet_naming_symbols.local_constants_symbols.applicable_accessibilities = local
+dotnet_naming_symbols.local_constants_symbols.required_modifiers = const
+
+dotnet_naming_symbols.locals_symbols.applicable_kinds = local
+dotnet_naming_symbols.locals_symbols.applicable_accessibilities = local
+
+dotnet_naming_symbols.parameters_symbols.applicable_kinds = parameter
+dotnet_naming_symbols.parameters_symbols.applicable_accessibilities = *
+
+dotnet_naming_style.pascal_case_style.capitalization = pascal_case
+dotnet_naming_style.i_pascal_case_style.capitalization = pascal_case
+dotnet_naming_style.i_pascal_case_style.required_prefix = I
+dotnet_naming_style.t_pascal_case_style.capitalization = pascal_case
+dotnet_naming_style.t_pascal_case_style.required_prefix = T
+dotnet_naming_style.camel_case_style.capitalization = camel_case
+dotnet_naming_style.underscore_camel_case_style.capitalization = camel_case
+dotnet_naming_style.underscore_camel_case_style.required_prefix = _

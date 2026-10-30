@@ -50,8 +50,6 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter:6.0.0")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 
-    testImplementation(libs.zstd.jni)
-
     LWJGL.addDependency(this, "testImplementation", "lwjgl")
     LWJGL.addDependency(this, "testImplementation", "lwjgl-xxhash")
 }

@@ -1,0 +1,4 @@
+bin/
+obj/
+*.DotSettings.user
+_ReSharper.Caches/

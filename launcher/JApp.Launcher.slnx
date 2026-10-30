@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="JApp.Launcher/JApp.Launcher.csproj"/>
+  <Project Path="JApp.Launcher.Tests/JApp.Launcher.Tests.csproj"/>
+</Solution>

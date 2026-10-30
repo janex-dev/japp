@@ -1,0 +1,177 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsAotCompatible>true</IsAotCompatible>
+    <!-- No culture-sensitive surface: versions are integer segments, names
+         compare ordinally and paths echo the file system — drop the ICU link
+         and dlopen (same convention as JdkFind). -->
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <!-- The execvp LibraryImport generates an unsafe marshalling stub. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <!-- Same executable name as the Rust launcher in native/, so the AOT build
+         is a drop-in replacement for it. -->
+    <AssemblyName>japp</AssemblyName>
+    <!-- Every warning is a build error (same convention as JdkFind), so issues
+         fail the build instead of slipping past as warnings. -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <Version>0.1.0</Version>
+    <!-- Boot jar appended to the AOT-published executable (the self-contained
+         launcher shape). Defaults to the Gradle-built jar: a missing default
+         publishes a bare launcher, a missing explicit value fails the build,
+         and AppendBootJar=false opts out entirely. The append task is
+         idempotent — it byte-compares the tail and only rewrites the
+         executable when the jar changed. -->
+    <JappBootJarDefault>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\..\build\japp-boot.jar'))</JappBootJarDefault>
+    <JappBootJar Condition="'$(JappBootJar)' == ''">$(JappBootJarDefault)</JappBootJar>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="JdkFind" Version="0.5.2"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="JApp.Launcher.Tests"/>
+  </ItemGroup>
+
+  <UsingTask TaskName="JappEnsureBootJarTail" TaskFactory="RoslynCodeTaskFactory"
+             AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <Task>
+      <Code Type="Class" Language="cs">
+        <![CDATA[
+using System;
+using System.IO;
+using Microsoft.Build.Framework;
+using Microsoft.Build.Utilities;
+
+// Ensures the published executable ends with exactly the bytes of the boot
+// jar: same tail = cached (no write), a differing trailing zip = the jar was
+// rebuilt (truncate and re-append), no trailing zip = fresh publish (append).
+public class JappEnsureBootJarTail : Task
+{
+    private const int ZipEocdMagic = 0x06054b50;
+
+    [Required] public string Executable { get; set; } = "";
+    [Required] public string BootJar { get; set; } = "";
+
+    public override bool Execute()
+    {
+        var jar = File.ReadAllBytes(BootJar);
+
+        long tailSize = TrailingZipSize(Executable);
+        if (tailSize == jar.LongLength && TailEquals(jar))
+        {
+            Log.LogMessage(MessageImportance.High, "japp: {0} already ends with the current boot jar", Path.GetFileName(Executable));
+            return true;
+        }
+
+        if (tailSize > 0)
+        {
+            Log.LogMessage(MessageImportance.High, "japp: replacing stale boot jar tail ({0} bytes)", tailSize);
+            using (var truncate = new FileStream(Executable, FileMode.Open, FileAccess.Write))
+            {
+                truncate.SetLength(truncate.Length - tailSize);
+            }
+        }
+
+        using (var append = new FileStream(Executable, FileMode.Append, FileAccess.Write))
+        {
+            append.Write(jar, 0, jar.Length);
+        }
+
+        Log.LogMessage(MessageImportance.High, "japp: appended boot jar ({0} bytes) to {1}", jar.Length, Path.GetFileName(Executable));
+        return true;
+    }
+
+    private bool TailEquals(byte[] jar)
+    {
+        using (var stream = new FileStream(Executable, FileMode.Open, FileAccess.Read, FileShare.Read))
+        {
+            stream.Position = stream.Length - jar.LongLength;
+            var buffer = new byte[80 * 1024];
+            var offset = 0;
+            int read;
+            while ((read = stream.Read(buffer, 0, Math.Min(buffer.Length, jar.Length - offset))) > 0)
+            {
+                for (var i = 0; i < read; i++)
+                {
+                    if (buffer[i] != jar[offset + i])
+                        return false;
+                }
+                offset += read;
+            }
+            return offset == jar.Length;
+        }
+    }
+
+    private static long TrailingZipSize(string file)
+    {
+        // The EOCD plus its comment never exceeds 22 + 65535 bytes.
+        const int maxScan = 128 * 1024;
+
+        using (var stream = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read))
+        {
+            if (stream.Length < 22)
+                return -1;
+
+            var tailSize = (int)Math.Min(stream.Length, maxScan);
+            var tail = new byte[tailSize];
+            stream.Position = stream.Length - tailSize;
+            var filled = 0;
+            while (filled < tailSize)
+            {
+                var read = stream.Read(tail, filled, tailSize - filled);
+                if (read <= 0)
+                    throw new IOException("Unexpected end of file");
+                filled += read;
+            }
+
+            for (var index = tailSize - 22; index >= 0; index--)
+            {
+                if (BitConverter.ToInt32(tail, index) != ZipEocdMagic)
+                    continue;
+
+                var commentLength = BitConverter.ToUInt16(tail, index + 20);
+                if (commentLength != tailSize - index - 22)
+                    continue;
+
+                var centralDirectoryLength = BitConverter.ToUInt32(tail, index + 12);
+                var centralDirectoryOffset = BitConverter.ToUInt32(tail, index + 16);
+                var size = (long)centralDirectoryOffset + centralDirectoryLength + 22 + commentLength;
+                return size > 0 && size <= stream.Length ? size : -1;
+            }
+
+            return -1;
+        }
+    }
+}
+        ]]>
+      </Code>
+    </Task>
+  </UsingTask>
+
+  <!-- CopyNativeBinary places the bare native executable into the publish
+       directory; hooking after it (not after Publish, where alphabetical
+       order runs us BEFORE the copy) is what makes the tail survive. -->
+  <Target Name="AppendBootJarToPublish"
+          AfterTargets="CopyNativeBinary"
+          Condition="'$(PublishAot)' == 'true' and '$(AppendBootJar)' != 'false'">
+    <PropertyGroup>
+      <JappBootJarPath>$([System.IO.Path]::GetFullPath('$(JappBootJar)'))</JappBootJarPath>
+      <JappPublishedExecutable>$([System.IO.Path]::GetFullPath('$(PublishDir)$(AssemblyName)$(HostExecutableExtension)'))</JappPublishedExecutable>
+    </PropertyGroup>
+
+    <Error Condition="!Exists('$(JappBootJarPath)') and '$(JappBootJarPath)' != '$(JappBootJarDefault)'"
+           Text="JappBootJar not found: $(JappBootJarPath)"/>
+    <Message Condition="!Exists('$(JappBootJarPath)')"
+             Importance="high"
+             Text="Boot jar not found at the default location ($(JappBootJarPath)); publishing a bare launcher."/>
+    <JappEnsureBootJarTail Condition="Exists('$(JappBootJarPath)')"
+                           Executable="$(JappPublishedExecutable)"
+                           BootJar="$(JappBootJarPath)"/>
+  </Target>
+
+</Project>

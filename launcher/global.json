@@ -1,0 +1,14 @@
+{
+  // Same convention as JdkFind: pin the SDK floor so local builds share one
+  // toolchain; latestFeature accepts any newer 10.0.x feature band.
+  "sdk": {
+    "version": "10.0.100",
+    "rollForward": "latestFeature",
+    "allowPrerelease": false
+  },
+  // Puts dotnet test into its .NET 10 MTP mode, which is how the xunit.v3 test
+  // project runs (the legacy VSTest mode on the .NET 10 SDK refuses MTP projects).
+  "test": {
+    "runner": "Microsoft.Testing.Platform"
+  }
+}
